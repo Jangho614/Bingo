@@ -1,0 +1,21 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/chart"
+        android:enabled="true"
+        android:icon="@drawable/chart_icon"
+        android:title="통계"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/video"
+        android:enabled="true"
+        android:icon="@drawable/video_icon"
+        android:title="영상관리"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/notice"
+        android:enabled="true"
+        android:icon="@drawable/notice_icon"
+        android:title="게시판"
+        app:showAsAction="always"/>
+</menu>
