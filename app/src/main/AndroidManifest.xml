@@ -32,9 +32,6 @@
             android:exported="false"
             android:windowSoftInputMode="adjustNothing" />
         <activity
-            android:name=".notice"
-            android:exported="false" />
-        <activity
             android:name=".board_writing"
             android:exported="false" />
         <activity
