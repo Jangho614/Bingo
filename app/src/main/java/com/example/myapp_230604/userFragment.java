@@ -78,9 +78,9 @@ public class userFragment extends Fragment {
 
         Random rand = new Random();
         String[] trash = {"플라스틱", "유리", "캔", "종이"};
+        int once = 0;
         int process;
         String prc;
-
         for (int i = 0; i < 6; i++) {
             int rnum1 = rand.nextInt(4);
             String put = trash[rnum1];
@@ -94,13 +94,13 @@ public class userFragment extends Fragment {
 
             String typeResult = String.format("%s -> %s", put, bin);
             String id = databaseReference.push().getKey();
-            if(process == 1){
+            if (process == 1) {
                 prc = "처리완료";
-            }else{
+            } else {
                 prc = "처리필요";
             }
-            RecycleData data = new RecycleData(id,typeResult,"2024-07-25 19:28:30",prc);
-            if(id != null){
+            RecycleData data = new RecycleData(id, typeResult, "2024-07-25 19:28:30", prc);
+            if (id != null) {
                 databaseReference.child(id).setValue(data);
             }
         }

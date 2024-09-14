@@ -39,7 +39,6 @@ public class DetailActivity_m extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (id != null) {
-                    System.out.println("???"+id);
                     databaseReference.child(id).removeValue();
                     finish();
                 }
