@@ -2,12 +2,8 @@ package com.example.myapp_230604;
 
 import static android.content.ContentValues.TAG;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.graphics.Color;
-import android.media.effect.Effect;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -16,11 +12,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 
 public class Login_User extends AppCompatActivity {
@@ -33,6 +32,8 @@ public class Login_User extends AppCompatActivity {
     EditText pw;
     String mode="";
     private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +45,7 @@ public class Login_User extends AppCompatActivity {
         id = findViewById(R.id.input_id);
         pw = findViewById(R.id.input_pw);
         mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         user_btn.setTextColor(Color.parseColor("#1ab833"));
         manage_btn.setTextColor(Color.parseColor("#000000"));
@@ -67,7 +69,6 @@ public class Login_User extends AppCompatActivity {
                     intent = new Intent(getApplicationContext(), signup_manager.class);
                 }
                 startActivity(intent);
-
             }
         });
 

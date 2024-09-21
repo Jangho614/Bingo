@@ -46,7 +46,6 @@ public class noticeFragment_m extends Fragment {
         recyclerView = view.findViewById(R.id.recyclerView);
         editTextSearch = view.findViewById(R.id.editTextSearch);
         write_btn = view.findViewById(R.id.buttonnn);
-        search_btn = view.findViewById(R.id.search_button_n);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);

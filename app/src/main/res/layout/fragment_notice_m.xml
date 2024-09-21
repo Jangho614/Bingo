@@ -34,27 +34,13 @@
 
     <EditText
         android:id="@+id/editTextSearch"
-        android:layout_width="245dp"
+        android:layout_width="270dp"
         android:layout_height="50dp"
         android:ems="10"
         android:hint="게시판명.."
         android:inputType="text"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.337"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.098" />
-
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/search_button_n"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:background="@drawable/custombtn"
-        android:text="검색"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.858"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.098" />
