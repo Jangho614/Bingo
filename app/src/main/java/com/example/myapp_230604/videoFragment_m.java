@@ -2,7 +2,6 @@ package com.example.myapp_230604;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,16 +10,12 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 
-import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +47,8 @@ public class videoFragment_m extends Fragment {
         NeedBox = view.findViewById(R.id.NeedCheck);
         CompleteBox = view.findViewById(R.id.CompleteCheck);
         databaseReference = FirebaseDatabase.getInstance().getReference().child("WrongRecycle");
-        loadRecycle();
+        //ToDo 파베 수정
+        //        loadRecycle();
 
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
@@ -110,35 +106,35 @@ public class videoFragment_m extends Fragment {
         intent.putExtra(DetailActivity_m.EXTRA_TYPE, item.type);
         startActivity(intent);
     }
-    private void loadRecycle() {
-        if (databaseReference == null) {
-            Log.e("VideoFragment", "DatabaseReference is null");
-            return;
-        }
-
-        databaseReference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                recycleList.clear();
-                adapter.resetItem();
-                System.out.println("dataChanged");
-                for (DataSnapshot postSnapshot : snapshot.getChildren()) {
-                    RecycleData recycle = postSnapshot.getValue(RecycleData.class);
-                    System.out.println("Recycle");
-                    if (recycle != null) {
-                        recycleList.add(recycle);
-                        adapter.addItem(new VideoAdapter.Item(recycle.id,recycle.wrongTime,recycle.process,recycle.wrongType));
-                    }
-                }
-                adapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("MainActivity", error.toException().toString());
-            }
-        });
-    }
+//    private void loadRecycle() {
+//        if (databaseReference == null) {
+//            Log.e("VideoFragment", "DatabaseReference is null");
+//            return;
+//        }
+//
+//        databaseReference.addValueEventListener(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                recycleList.clear();
+//                adapter.resetItem();
+//                System.out.println("dataChanged");
+//                for (DataSnapshot postSnapshot : snapshot.getChildren()) {
+//                    RecycleData recycle = postSnapshot.getValue(RecycleData.class);
+//                    System.out.println("Recycle");
+//                    if (recycle != null) {
+//                        recycleList.add(recycle);
+//                        adapter.addItem(new VideoAdapter.Item(recycle.id,recycle.wrongTime,recycle.process,recycle.wrongType));
+//                    }
+//                }
+//                adapter.notifyDataSetChanged();
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {
+//                Log.e("MainActivity", error.toException().toString());
+//            }
+//        });
+//    }
 }
 
 

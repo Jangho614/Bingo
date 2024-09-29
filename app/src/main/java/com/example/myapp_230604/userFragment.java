@@ -31,13 +31,13 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 import java.util.TimeZone;
 
 public class userFragment extends Fragment {
@@ -74,7 +74,7 @@ public class userFragment extends Fragment {
         // Initialize views
         recyclerView = view.findViewById(R.id.user_recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false));
-        adapter = new UserAdapter();
+        adapter = new UserAdapter(recycleList);
         recyclerView.setAdapter(adapter);
         main_btn = view.findViewById(R.id.mic_icon);
         mAuth = FirebaseAuth.getInstance();  // FirebaseAuth 초기화
@@ -84,9 +84,12 @@ public class userFragment extends Fragment {
         if (currentUser != null) {
             String uid = currentUser.getUid();
             databaseReference = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("recycle");
-            loadRecycle();  // 데이터 로드 메서드 호출
-
-            timeText = view.findViewById(R.id.time_text);
+            loadRecycle();
+        }
+        timeText = view.findViewById(R.id.time_text);
+        if (timeText == null) {
+            Log.e("userFragment", "TextView is null");
+        } else {
             handler = new Handler();
             runnable = new Runnable() {
                 @Override
@@ -98,50 +101,34 @@ public class userFragment extends Fragment {
             handler.post(runnable);
         }
 
-        // Set up the button click listener
+        adapter.setOnItemClickListener(new UserAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(RecycleData item) {
+                showDetailActivity(item);
+            }
+        });
         main_btn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
+            public void onClick(View view) {
                 if(isRecording) {
-                    // 현재 녹음 중 O
-                    // 녹음 상태에 따른 변수 아이콘 & 텍스트 변경
-                    isRecording = false; // 녹음 상태 값
-                    Toast.makeText(getContext(), "녹음중지", Toast.LENGTH_SHORT).show(); // 녹음 상태 아이콘 변경// 녹음 상태 텍스트 변경
                     stopRecording();
-                    // 녹화 이미지 버튼 변경 및 리코딩 상태 변수값 변경
                 } else {
-                    // 현재 녹음 중 X
-                    /*절차
-                     *       1. Audio 권한 체크
-                     *       2. 처음으로 녹음 실행한건지 여부 확인
-                     * */
                     if(checkAudioPermission()) {
-                        // 녹음 상태에 따른 변수 아이콘 & 텍스트 변경
-                        isRecording = true; // 녹음 상태 값
-                        Toast.makeText(getContext(), "녹음시작", Toast.LENGTH_SHORT).show(); // 녹음 상태 아이콘 변경
                         startRecording();
                     }
                 }
             }
         });
-
-        adapter.setOnItemClickListener(new UserAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(UserAdapter.Item item) {
-                showDetailActivity(item);
-            }
-        });
-
         return view;
     }
 
-    private void showDetailActivity(UserAdapter.Item item) {
-        Intent intent = new Intent(getContext(), DetailActivity.class);
-        intent.putExtra(DetailActivity.EXTRA_TYPE_RESULT, item.wrongtype);
-        intent.putExtra(DetailActivity.EXTRA_TIMESTAMP, item.wrongtime);
+    private void showDetailActivity(RecycleData item) {
+        Intent intent = new Intent(getContext(), recycle_video.class);
+        intent.putExtra("RECYCLE_TIME",item.getTime());
+        intent.putExtra("RECYCLE_TYPE",item.getType());
+        intent.putExtra("AUDIO_URI", item.getUri().toString());
         startActivity(intent);
     }
-
     private void loadRecycle() {
         if (databaseReference == null) {
             Log.e("userFragment", "DatabaseReference is null");
@@ -152,14 +139,13 @@ public class userFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 recycleList.clear();
-                adapter.resetItem();
+                adapter.resetItem(recycleList);
                 Log.d("userFragment", "Data changed, loading new data");
 
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     RecycleData recycle = postSnapshot.getValue(RecycleData.class);
                     if (recycle != null) {
                         recycleList.add(recycle);
-                        adapter.addItem(new UserAdapter.Item(recycle.wrongType, recycle.wrongTime));
                     }
                 }
                 adapter.notifyDataSetChanged();
@@ -192,17 +178,11 @@ public class userFragment extends Fragment {
             return false;
         }
     }
-
-    //녹음 관련 코드
     private void startRecording() {
-        //TODO 에러 확인
-        //파일의 외부 경로 확인
-        String recordPath = getExternalFilesDir("/").getAbsolutePath();
-        // 파일 이름 변수를 현재 날짜가 들어가도록 초기화. 그 이유는 중복된 이름으로 기존에 있던 파일이 덮어 쓰여지는 것을 방지하고자 함.
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String recordPath = getContext().getExternalFilesDir("/").getAbsolutePath();
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         audioFileName = recordPath + "/" +"RecordExample_" + timeStamp + "_"+"audio.mp4";
 
-        //Media Recorder 생성 및 설정
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
@@ -211,62 +191,71 @@ public class userFragment extends Fragment {
 
         try {
             mediaRecorder.prepare();
+            mediaRecorder.start();
+            isRecording = true;
+            Toast.makeText(getContext(), "녹음 시작", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        //녹음 시작
-        mediaRecorder.start();
     }
 
-    // 녹음 종료
+    // Stop recording and add it to RecyclerView
     private void stopRecording() {
-        // 녹음 종료 종료
-        mediaRecorder.stop();
-        mediaRecorder.release();
-        mediaRecorder = null;
+        try {
+            mediaRecorder.stop();
+        } catch (RuntimeException e) {
+            // Handle the exception if the recording has not been started
+            e.printStackTrace();
+        } finally {
+            mediaRecorder.release();
+            mediaRecorder = null;
+            isRecording = false;
+        }
 
-        // 파일 경로(String) 값을 Uri로 변환해서 저장
-        //      - Why? : 리사이클러뷰에 들어가는 ArrayList가 Uri를 가지기 때문
-        //      - File Path를 알면 File을  인스턴스를 만들어 사용할 수 있기 때문
+        Toast.makeText(getContext(), "녹음 중지", Toast.LENGTH_SHORT).show();
+
         audioUri = Uri.parse(audioFileName);
+        String recordedTime = (timeText != null) ? timeText.getText().toString() : "Unknown Time";
 
+        // Create a new RecycleData object
+        RecycleData newRecycleData = new RecycleData(audioUri.toString(), getRecycleType(), recordedTime);
 
-        // 데이터 ArrayList에 담기
-        // TODO 어뎁터 수정
-        recycleList.add(audioUri);
-
+        // Add to local list and update Firebase
+        recycleList.add(newRecycleData);
         adapter.notifyDataSetChanged();
 
+
+        saveRecycleDataToFirebase(newRecycleData);
     }
 
-    // 녹음 파일 재생
-    private void playAudio(File file) {
-        mediaPlayer = new MediaPlayer();
-
-        try {
-            mediaPlayer.setDataSource(file.getAbsolutePath());
-            mediaPlayer.prepare();
-            mediaPlayer.start();
-        } catch (IOException e) {
-            e.printStackTrace();
+    private void saveRecycleDataToFirebase(RecycleData recycleData) {
+        String key = databaseReference.push().getKey(); // Generate a new key for the new item
+        if (key != null) {
+            databaseReference.child(key).setValue(recycleData)
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d("userFragment", "RecycleData successfully saved to Firebase.");
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("userFragment", "Failed to save RecycleData: " + e.getMessage());
+                    });
+        } else {
+            Log.e("userFragment", "Failed to generate key for RecycleData.");
         }
-
-        Toast.makeText(getContext(), "녹음파일재생", Toast.LENGTH_SHORT).show();
-        isPlaying = true;
-
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                stopAudio();
-            }
-        });
-
     }
 
-    // 녹음 파일 중지
-    private void stopAudio() {
-        Toast.makeText(getContext(), "녹음파일중지", Toast.LENGTH_SHORT).show();
-        isPlaying = false;
-        mediaPlayer.stop();
+    private String getRecycleType() {
+        Random rand = new Random();
+        String[] trash1 = new String[]{"플라스틱", "종이", "유리", "고철"};
+        String[] trash2 = new String[]{"플라스틱", "종이", "유리", "고철"};
+
+        int a, b;
+        do {
+            a = rand.nextInt(4);
+            b = rand.nextInt(4);
+        } while (a == b);
+
+        String result = trash1[a] + " -> " + trash2[b];
+
+        return result;
     }
 }
