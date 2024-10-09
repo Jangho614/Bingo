@@ -18,12 +18,13 @@
         tools:ignore="MissingConstraints" />
 
     <TextView
-        android:id="@+id/textView5"
+        android:id="@+id/noticeTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="분리수거 게시판"
         android:textAlignment="center"
         android:textSize="28sp"
+        android:clickable="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.501"

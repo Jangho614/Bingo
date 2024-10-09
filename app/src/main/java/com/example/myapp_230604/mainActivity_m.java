@@ -14,7 +14,7 @@ public class mainActivity_m extends AppCompatActivity {
 
     chartFragment chartFragment;
     noticeFragment_m noticeFragment;
-    videoFragment_m videoFragment;
+    ManagerFragment videoFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,7 +26,7 @@ public class mainActivity_m extends AppCompatActivity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
 
         chartFragment = new chartFragment();
-        videoFragment = new videoFragment_m();
+        videoFragment = new ManagerFragment();
         noticeFragment = new noticeFragment_m();
 
         getSupportFragmentManager().beginTransaction().replace(R.id.containers,videoFragment).commit();

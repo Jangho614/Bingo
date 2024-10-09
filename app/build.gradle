@@ -55,6 +55,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-database'
     implementation platform('com.google.firebase:firebase-bom:33.3.0')
 
-    implementation 'org.tensorflow:tensorflow-lite-task-audio:0.4.0'
     implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
+    implementation 'org.tensorflow:tensorflow-lite-task-audio'
+
 }

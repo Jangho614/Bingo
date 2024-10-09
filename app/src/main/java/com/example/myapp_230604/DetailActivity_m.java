@@ -39,7 +39,7 @@ public class DetailActivity_m extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (id != null) {
-                    databaseReference.child(id).removeValue();
+//                    databaseReference.child(id).removeValue();
                     finish();
                 }
             }
@@ -59,7 +59,7 @@ public class DetailActivity_m extends AppCompatActivity {
         VideoView videoView = findViewById(R.id.videoView);
 
         timestampText.setText(time);
-        idText.setText(id.substring(0,8));
+        idText.setText(id);
         processText.setText(process);
         typeResultText.setText(type);
 

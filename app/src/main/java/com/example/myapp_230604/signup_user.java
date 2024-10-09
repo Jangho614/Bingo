@@ -35,6 +35,7 @@ public class signup_user extends AppCompatActivity {
     EditText phone;
     EditText birth;
     EditText add;
+    String mode;
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;  // Realtime Database 참조
 
@@ -50,6 +51,7 @@ public class signup_user extends AppCompatActivity {
         birth = findViewById(R.id.birth);
         add = findViewById(R.id.address);
         mAuth = FirebaseAuth.getInstance();
+        mode = "user";
         mDatabase = FirebaseDatabase.getInstance().getReference();  // Firebase Realtime Database 인스턴스
 
         Signup_btn = findViewById(R.id.signUp);
@@ -108,6 +110,7 @@ public class signup_user extends AppCompatActivity {
 
         // 사용자 데이터를 Map으로 생성
         Map<String, Object> userData = new HashMap<>();
+        userData.put("mode", mode);
         userData.put("email", email);
         userData.put("phone", phoneNumber);
         userData.put("birthDate", birthDate);

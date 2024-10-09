@@ -74,7 +74,7 @@ public class userFragment extends Fragment {
         // Initialize views
         recyclerView = view.findViewById(R.id.user_recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false));
-        adapter = new UserAdapter(recycleList);
+        adapter = new UserAdapter();
         recyclerView.setAdapter(adapter);
         main_btn = view.findViewById(R.id.mic_icon);
         mAuth = FirebaseAuth.getInstance();  // FirebaseAuth 초기화
@@ -103,7 +103,7 @@ public class userFragment extends Fragment {
 
         adapter.setOnItemClickListener(new UserAdapter.OnItemClickListener() {
             @Override
-            public void onItemClick(RecycleData item) {
+            public void onItemClickN(UserAdapter.Item item) {
                 showDetailActivity(item);
             }
         });
@@ -122,11 +122,11 @@ public class userFragment extends Fragment {
         return view;
     }
 
-    private void showDetailActivity(RecycleData item) {
-        Intent intent = new Intent(getContext(), recycle_video.class);
-        intent.putExtra("RECYCLE_TIME",item.getTime());
-        intent.putExtra("RECYCLE_TYPE",item.getType());
-        intent.putExtra("AUDIO_URI", item.getUri().toString());
+    private void showDetailActivity(UserAdapter.Item item) {
+        Intent intent = new Intent(getContext(), DetailActivity.class);
+        intent.putExtra("RECYCLE_TIME",item.time);
+        intent.putExtra("RECYCLE_TYPE",item.type);
+        intent.putExtra("AUDIO_URI", item.uri);
         startActivity(intent);
     }
     private void loadRecycle() {
@@ -139,13 +139,14 @@ public class userFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 recycleList.clear();
-                adapter.resetItem(recycleList);
+                adapter.resetItem();
                 Log.d("userFragment", "Data changed, loading new data");
 
                 for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                     RecycleData recycle = postSnapshot.getValue(RecycleData.class);
                     if (recycle != null) {
                         recycleList.add(recycle);
+                        adapter.addItem(new UserAdapter.Item(recycle.getUri(),recycle.getType(),recycle.getTime()));
                     }
                 }
                 adapter.notifyDataSetChanged();
@@ -211,38 +212,15 @@ public class userFragment extends Fragment {
             mediaRecorder = null;
             isRecording = false;
         }
-
         Toast.makeText(getContext(), "녹음 중지", Toast.LENGTH_SHORT).show();
-
         audioUri = Uri.parse(audioFileName);
+        String recycleType = getRecycleType();
         String recordedTime = (timeText != null) ? timeText.getText().toString() : "Unknown Time";
-
-        // Create a new RecycleData object
-        RecycleData newRecycleData = new RecycleData(audioUri.toString(), getRecycleType(), recordedTime);
-
-        // Add to local list and update Firebase
-        recycleList.add(newRecycleData);
+        adapter.addItem(new UserAdapter.Item(audioUri.toString(), recycleType, recordedTime));
+        putDatabase(audioUri.toString(),recycleType,recordedTime);
         adapter.notifyDataSetChanged();
 
-
-        saveRecycleDataToFirebase(newRecycleData);
     }
-
-    private void saveRecycleDataToFirebase(RecycleData recycleData) {
-        String key = databaseReference.push().getKey(); // Generate a new key for the new item
-        if (key != null) {
-            databaseReference.child(key).setValue(recycleData)
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d("userFragment", "RecycleData successfully saved to Firebase.");
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("userFragment", "Failed to save RecycleData: " + e.getMessage());
-                    });
-        } else {
-            Log.e("userFragment", "Failed to generate key for RecycleData.");
-        }
-    }
-
     private String getRecycleType() {
         Random rand = new Random();
         String[] trash1 = new String[]{"플라스틱", "종이", "유리", "고철"};
@@ -254,8 +232,16 @@ public class userFragment extends Fragment {
             b = rand.nextInt(4);
         } while (a == b);
 
-        String result = trash1[a] + " -> " + trash2[b];
+        return trash1[a] + " -> " + trash2[b];
+    }
 
-        return result;
+    private void putDatabase(String Uri, String Type, String Time){
+        String id = databaseReference.push().getKey();
+
+        RecycleData data = new RecycleData(Uri, Type, Time);
+        if(id != null){
+            databaseReference.child(id).setValue(data);
+            Toast.makeText(getContext(),"RecycleData Upload",Toast.LENGTH_SHORT).show();
+        }
     }
 }

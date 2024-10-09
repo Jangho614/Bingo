@@ -19,6 +19,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 
@@ -39,6 +40,18 @@ public class Login_User extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login_user);
+
+        mAuth = FirebaseAuth.getInstance();
+        FirebaseUser user = mAuth.getCurrentUser();
+        if(user != null){
+            if (mode == "user") {
+                startActivity(new Intent(this,mainActivity.class));
+                finish();
+            }else{
+                startActivity(new Intent(this,mainActivity_m.class));
+                finish();
+            }
+        }
 
         user_btn = findViewById(R.id.text_user);
         manage_btn = findViewById(R.id.text_manager);

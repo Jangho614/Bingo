@@ -17,6 +17,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -34,7 +36,9 @@ public class noticeFragment_m extends Fragment {
     NoticeAdapter adapter;
     Button write_btn;
     Button search_btn;
+    TextView Logout;
 
+    private FirebaseAuth mAuth;
     private DatabaseReference databaseReference;
     private List<noticeData> postList = new ArrayList<>();
 
@@ -55,6 +59,17 @@ public class noticeFragment_m extends Fragment {
 
         // Firebase Database 초기화
         databaseReference = FirebaseDatabase.getInstance().getReference().child("posts");
+        mAuth = FirebaseAuth.getInstance();
+        FirebaseUser user = mAuth.getCurrentUser();
+        Logout = view.findViewById(R.id.noticeTitle_M);
+        Logout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getActivity(), Login_User.class);
+                startActivity(intent);
+                mAuth.signOut();
+            }
+        });
 
         write_btn.setOnClickListener(new View.OnClickListener() {
             @Override

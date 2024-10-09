@@ -13,13 +13,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.ViewHolder> implements Filterable {
+public class ManagerAdapter extends RecyclerView.Adapter<ManagerAdapter.ViewHolder> implements Filterable {
 
     private ArrayList<Item> items;
     private ArrayList<Item> itemsFull;
     private OnItemClickListener listener;
 
-    public VideoAdapter() {
+    public ManagerAdapter() {
         this.items = new ArrayList<>();
         this.itemsFull = new ArrayList<>();
     }
@@ -44,14 +44,14 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.ViewHolder> 
                 public void onClick(View v) {
                     int position = getAdapterPosition();
                     if(listener != null && position !=RecyclerView.NO_POSITION){
-                        listener.onItemClickV((VideoAdapter.Item) v.getTag());
+                        listener.onItemClickV((ManagerAdapter.Item) v.getTag());
                     }
                 }
             });
         }
 
         public void setItem(Item item) {
-            id.setText(item.id.substring(0,8));
+            id.setText(item.id);
             time.setText(item.time);
             if(item.processing.equals("처리완료")) {
                 processing.setTextColor(Color.rgb(60, 60, 255));
@@ -70,7 +70,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.ViewHolder> 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         View view = LayoutInflater.from(viewGroup.getContext())
-                .inflate(R.layout.video_item, viewGroup, false);
+                .inflate(R.layout.manager_item, viewGroup, false);
 
         return new ViewHolder(view, listener);
     }

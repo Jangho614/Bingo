@@ -8,12 +8,13 @@
     tools:context=".noticeFragment_m">
 
     <TextView
-        android:id="@+id/page_title"
+        android:id="@+id/noticeTitle_M"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="분리수거 게시판"
         android:textAlignment="center"
         android:textSize="28sp"
+        android:clickable="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
