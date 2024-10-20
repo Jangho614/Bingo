@@ -31,9 +31,12 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.tensorflow.lite.support.label.Category;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -107,6 +110,9 @@ public class userFragment extends Fragment {
                 showDetailActivity(item);
             }
         });
+
+        //테스트 버튼
+        main_btn.setClickable(false);
         main_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -121,6 +127,37 @@ public class userFragment extends Fragment {
         });
         return view;
     }
+    // AudioClassificationListener 구현 (Java 버전)
+    private AudioClassificationListener audioClassificationListener = new AudioClassificationListener() {
+
+        // 결과를 처리하는 메소드
+        @Override
+        public void onResult(final List<Category> results, final long inferenceTime) {
+            // UI 작업은 메인 스레드에서 실행해야 하므로 runOnUiThread 사용
+            requireActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    adapter.addItem((UserAdapter.Item) results); // 카테고리 목록 업데이트
+                    adapter.notifyDataSetChanged(); // 어댑터 갱신
+                }
+            });
+        }
+
+        // 오류를 처리하는 메소드
+        @Override
+        public void onError(final String error) {
+            // UI 작업은 메인 스레드에서 실행해야 하므로 runOnUiThread 사용
+            requireActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                    adapter.addItem((UserAdapter.Item) Collections.emptyList()); // 에러 시 목록 초기화
+                    adapter.notifyDataSetChanged(); // 어댑터 갱신
+                }
+            });
+        }
+    };
+
 
     private void showDetailActivity(UserAdapter.Item item) {
         Intent intent = new Intent(getContext(), DetailActivity.class);
