@@ -1,4 +1,3 @@
-
 plugins {
     id 'com.android.application'
     id 'com.google.gms.google-services'
@@ -61,8 +60,9 @@ dependencies {
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
 
     // TensorFlow Lite (최신 버전으로 수정)
-    implementation 'org.tensorflow:tensorflow-lite:2.11.0' // 중복 라이브러리 제거 후 필요 시 추가
-    implementation 'org.tensorflow:tensorflow-lite-task-audio:2.11.0'
+    implementation 'org.tensorflow:tensorflow-lite-task-audio:0.4.0'
+    // Import the GPU delegate plugin Library for GPU inference
+    implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
 
     // Navigation library
     def nav_version = "2.3.5"

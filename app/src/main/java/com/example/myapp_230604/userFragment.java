@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -31,6 +32,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.tensorflow.lite.examples.audio.AudioClassificationHelper;
 import org.tensorflow.lite.support.label.Category;
 
 import java.io.IOException;
@@ -55,6 +57,7 @@ public class userFragment extends Fragment {
 
     private String recordPermission = Manifest.permission.RECORD_AUDIO;
     private int PERMISSION_CODE = 21;
+    private AudioClassificationHelper audioHelper;
 
     private MediaRecorder mediaRecorder;
     private String audioFileName; // 오디오 녹음 생성 파일 이름
@@ -73,6 +76,8 @@ public class userFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_user, container, false);
+
+        checkAudioPermission();
 
         // Initialize views
         recyclerView = view.findViewById(R.id.user_recyclerView);
@@ -111,61 +116,72 @@ public class userFragment extends Fragment {
             }
         });
 
-        //테스트 버튼
+        // 테스트 버튼
         main_btn.setClickable(false);
         main_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(isRecording) {
+                if (isRecording) {
                     stopRecording();
                 } else {
-                    if(checkAudioPermission()) {
+                    if (checkAudioPermission()) {
                         startRecording();
                     }
                 }
             }
         });
+
+        // AudioClassificationHelper 초기화
+        audioHelper = new AudioClassificationHelper(
+                requireContext(),
+                audioClassificationListener,
+                AudioClassificationHelper.YAMNET_MODEL,
+                AudioClassificationHelper.DISPLAY_THRESHOLD,
+                AudioClassificationHelper.DEFAULT_OVERLAP_VALUE,
+                AudioClassificationHelper.DEFAULT_NUM_OF_RESULTS,
+                AudioClassificationHelper.DELEGATE_CPU,
+                2, // numThreads
+                adapter // UserAdapter
+        );
+
         return view;
     }
+
     // AudioClassificationListener 구현 (Java 버전)
     private AudioClassificationListener audioClassificationListener = new AudioClassificationListener() {
-
-        // 결과를 처리하는 메소드
         @Override
         public void onResult(final List<Category> results, final long inferenceTime) {
-            // UI 작업은 메인 스레드에서 실행해야 하므로 runOnUiThread 사용
             requireActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    adapter.addItem((UserAdapter.Item) results); // 카테고리 목록 업데이트
-                    adapter.notifyDataSetChanged(); // 어댑터 갱신
+                    for (Category category : results) {
+                        String label = category.getLabel();
+                        float score = category.getScore();
+                        adapter.addItem(new UserAdapter.Item(label, String.valueOf(score), String.valueOf(inferenceTime)));
+                    }
                 }
             });
         }
 
-        // 오류를 처리하는 메소드
         @Override
-        public void onError(final String error) {
-            // UI 작업은 메인 스레드에서 실행해야 하므로 runOnUiThread 사용
+        public void onError(String message) {
             requireActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
-                    adapter.addItem((UserAdapter.Item) Collections.emptyList()); // 에러 시 목록 초기화
-                    adapter.notifyDataSetChanged(); // 어댑터 갱신
+                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
                 }
             });
         }
     };
 
-
     private void showDetailActivity(UserAdapter.Item item) {
         Intent intent = new Intent(getContext(), DetailActivity.class);
-        intent.putExtra("RECYCLE_TIME",item.time);
-        intent.putExtra("RECYCLE_TYPE",item.type);
+        intent.putExtra("RECYCLE_TIME", item.time);
+        intent.putExtra("RECYCLE_TYPE", item.type);
         intent.putExtra("AUDIO_URI", item.uri);
         startActivity(intent);
     }
+
     private void loadRecycle() {
         if (databaseReference == null) {
             Log.e("userFragment", "DatabaseReference is null");
@@ -183,7 +199,7 @@ public class userFragment extends Fragment {
                     RecycleData recycle = postSnapshot.getValue(RecycleData.class);
                     if (recycle != null) {
                         recycleList.add(recycle);
-                        adapter.addItem(new UserAdapter.Item(recycle.getUri(),recycle.getType(),recycle.getTime()));
+                        adapter.addItem(new UserAdapter.Item(recycle.getUri(), recycle.getType(), recycle.getTime()));
                     }
                 }
                 adapter.notifyDataSetChanged();
@@ -195,6 +211,7 @@ public class userFragment extends Fragment {
             }
         });
     }
+
     private void updateTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         sdf.setTimeZone(TimeZone.getTimeZone("Asia/Seoul"));
@@ -207,7 +224,7 @@ public class userFragment extends Fragment {
         super.onDestroy();
         handler.removeCallbacks(runnable);
     }
-    //리사이클러 뷰
+
     private boolean checkAudioPermission() {
         if (ActivityCompat.checkSelfPermission(getContext(), recordPermission) == PackageManager.PERMISSION_GRANTED) {
             return true;
@@ -216,10 +233,11 @@ public class userFragment extends Fragment {
             return false;
         }
     }
+
     private void startRecording() {
         String recordPath = getContext().getExternalFilesDir("/").getAbsolutePath();
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        audioFileName = recordPath + "/" +"RecordExample_" + timeStamp + "_"+"audio.mp4";
+        audioFileName = recordPath + "/" + "RecordExample_" + timeStamp + "_" + "audio.mp4";
 
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -237,12 +255,10 @@ public class userFragment extends Fragment {
         }
     }
 
-    // Stop recording and add it to RecyclerView
     private void stopRecording() {
         try {
             mediaRecorder.stop();
         } catch (RuntimeException e) {
-            // Handle the exception if the recording has not been started
             e.printStackTrace();
         } finally {
             mediaRecorder.release();
@@ -254,10 +270,10 @@ public class userFragment extends Fragment {
         String recycleType = getRecycleType();
         String recordedTime = (timeText != null) ? timeText.getText().toString() : "Unknown Time";
         adapter.addItem(new UserAdapter.Item(audioUri.toString(), recycleType, recordedTime));
-        putDatabase(audioUri.toString(),recycleType,recordedTime);
+        putDatabase(audioUri.toString(), recycleType, recordedTime);
         adapter.notifyDataSetChanged();
-
     }
+
     private String getRecycleType() {
         Random rand = new Random();
         String[] trash1 = new String[]{"플라스틱", "종이", "유리", "고철"};
@@ -272,13 +288,34 @@ public class userFragment extends Fragment {
         return trash1[a] + " -> " + trash2[b];
     }
 
-    private void putDatabase(String Uri, String Type, String Time){
-        String id = databaseReference.push().getKey();
+    private void putDatabase(String uri, String type, String time) {
+        if (databaseReference == null) {
+            Log.e("userFragment", "DatabaseReference is null");
+            return;
+        }
 
-        RecycleData data = new RecycleData(Uri, Type, Time);
-        if(id != null){
-            databaseReference.child(id).setValue(data);
-            Toast.makeText(getContext(),"RecycleData Upload",Toast.LENGTH_SHORT).show();
+        RecycleData recycle = new RecycleData(uri, type, time);
+        databaseReference.push().setValue(recycle);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        checkAudioPermission();
+
+        if (audioHelper != null) {
+            audioHelper.startAudioClassification();
+            Log.d("AudioTF", "TFStart");// 오디오 분류 시작
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        if (audioHelper != null) {
+            audioHelper.stopAudioClassification(); // 오디오 분류 중지
+            Log.d("AudioTF", "TFStop");
         }
     }
 }

@@ -31,7 +31,7 @@ public class Login_User extends AppCompatActivity {
 
     EditText id;
     EditText pw;
-    String mode="";
+    String mode="user";
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
 
@@ -62,7 +62,6 @@ public class Login_User extends AppCompatActivity {
 
         user_btn.setTextColor(Color.parseColor("#1ab833"));
         manage_btn.setTextColor(Color.parseColor("#000000"));
-        mode = "user";
 
         login_btn = findViewById(R.id.button_login);
         login_btn.setOnClickListener(new View.OnClickListener() {

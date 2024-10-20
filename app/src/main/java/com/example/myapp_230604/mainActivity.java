@@ -42,9 +42,9 @@ public class mainActivity extends AppCompatActivity {
                     return true;
                 } else if (id == R.id.board) {
                     getSupportFragmentManager().beginTransaction().replace(R.id.containers, noticeFragment).commit();
-                    return true;
-                }
-                return false;
+                        return true;
+                    }
+                    return false;
             }
         });
     }
