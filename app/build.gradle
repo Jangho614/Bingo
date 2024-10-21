@@ -59,17 +59,10 @@ dependencies {
     implementation 'androidx.activity:activity-ktx:1.9.3'
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
 
-    // TensorFlow Lite (최신 버전으로 수정)
+    // Import the Audio Task Library dependency (NNAPI is included)
     implementation 'org.tensorflow:tensorflow-lite-task-audio:0.4.0'
     // Import the GPU delegate plugin Library for GPU inference
     implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
-
-    // Navigation library
-    def nav_version = "2.3.5"
-    //noinspection GradleDependency
-    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
-    //noinspection GradleDependency
-    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
 
     // Testing Libraries
     testImplementation 'junit:junit:4.13.2'

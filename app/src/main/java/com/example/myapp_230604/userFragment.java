@@ -20,7 +20,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -32,13 +31,11 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import org.tensorflow.lite.examples.audio.AudioClassificationHelper;
 import org.tensorflow.lite.support.label.Category;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -157,7 +154,8 @@ public class userFragment extends Fragment {
                     for (Category category : results) {
                         String label = category.getLabel();
                         float score = category.getScore();
-                        adapter.addItem(new UserAdapter.Item(label, String.valueOf(score), String.valueOf(inferenceTime)));
+                        String currentTime = timeText.getText().toString();
+                        adapter.addItem(new UserAdapter.Item("",label, currentTime));
                     }
                 }
             });

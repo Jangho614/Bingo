@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package org.tensorflow.lite.examples.audio
+package com.example.myapp_230604
 
 import android.content.Context
 import android.media.AudioRecord
 import android.os.SystemClock
 import android.util.Log
-import com.example.myapp_230604.AudioClassificationListener
-import com.example.myapp_230604.UserAdapter
-import com.google.firebase.database.core.Tag
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import org.tensorflow.lite.support.audio.TensorAudio
@@ -112,16 +109,17 @@ class AudioClassificationHelper(
         val output = classifier.classify(tensorAudio)
         inferenceTime = SystemClock.uptimeMillis() - inferenceTime
 
-        adapter.addItem(UserAdapter.Item("", output[0].categories.toString(), "$inferenceTime ms"))
+//        adapter.addItem(UserAdapter.Item("", output[0].categories.toString(), "$inferenceTime ms"))
         listener.onResult(output[0].categories, inferenceTime)
         Log.d("AudioTF", output[0].categories.toString())
     }
 
+    // 모델 설정값 지정
     companion object {
         const val DELEGATE_CPU = 0
         const val DELEGATE_NNAPI = 1
-        const val DISPLAY_THRESHOLD = 0.3f
-        const val DEFAULT_NUM_OF_RESULTS = 2
+        const val DISPLAY_THRESHOLD = 0.9f
+        const val DEFAULT_NUM_OF_RESULTS = 1
         const val DEFAULT_OVERLAP_VALUE = 0.5f
         const val YAMNET_MODEL = "recycle.tflite"
     }
