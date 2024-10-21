@@ -39,7 +39,6 @@ public class DetailActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-        playButton = findViewById(R.id.playButton);
 
         // Retrieve the audio URI from the intent
         String audioUriString = getIntent().getStringExtra("AUDIO_URI");
@@ -49,14 +48,6 @@ public class DetailActivity extends AppCompatActivity {
             Toast.makeText(this, "오디오 파일을 찾을 수 없습니다", Toast.LENGTH_SHORT).show();
             finish();
         }
-
-        // Play the audio when the button is clicked
-        playButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                playAudio();
-            }
-        });
     }
 
     private void playAudio() {

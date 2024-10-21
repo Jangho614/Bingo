@@ -32,10 +32,10 @@
         app:layout_constraintVertical_bias="0.258" />
 
     <TextView
-        android:id="@+id/textview"
+        android:id="@+id/guide_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="잘못된 분리수거 내역"
+        android:text="마이크를 눌러 분리배출을 시작"
         android:textAlignment="center"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"

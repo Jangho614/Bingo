@@ -1,6 +1,7 @@
 package com.example.myapp_230604;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
@@ -63,7 +64,7 @@ public class userFragment extends Fragment {
 
     private MediaPlayer mediaPlayer = null;
     private Boolean isPlaying = false;
-    ImageView playIcon;
+    private TextView guideBtn;
 
     private DatabaseReference databaseReference;
     private List<RecycleData> recycleList = new ArrayList<>();
@@ -78,6 +79,7 @@ public class userFragment extends Fragment {
 
         // Initialize views
         recyclerView = view.findViewById(R.id.user_recyclerView);
+        guideBtn = view.findViewById(R.id.guide_text);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false));
         adapter = new UserAdapter();
         recyclerView.setAdapter(adapter);
@@ -113,16 +115,21 @@ public class userFragment extends Fragment {
             }
         });
 
-        // 테스트 버튼
-        main_btn.setClickable(false);
         main_btn.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("UseCompatLoadingForDrawables")
             @Override
             public void onClick(View view) {
                 if (isRecording) {
-                    stopRecording();
+                    main_btn.setImageDrawable(getResources().getDrawable(R.drawable.user_mic));
+                    isRecording = false;
+                    guideBtn.setText("마이크를 눌러 분리배출을 시작");
+                    audioHelper.stopAudioClassification();
                 } else {
                     if (checkAudioPermission()) {
-                        startRecording();
+                        main_btn.setImageDrawable(getResources().getDrawable(R.drawable.user_stop));
+                        isRecording = true;
+                        guideBtn.setText("잘못된 분리배출 내역");
+                        audioHelper.startAudioClassification();
                     }
                 }
             }
@@ -155,7 +162,11 @@ public class userFragment extends Fragment {
                         String label = category.getLabel();
                         float score = category.getScore();
                         String currentTime = timeText.getText().toString();
-                        adapter.addItem(new UserAdapter.Item("",label, currentTime));
+//                        if(RightRecycle(label) % 5 == 1){
+                            label = label.substring(label.indexOf(" ") + 1);
+                            adapter.addItem(new UserAdapter.Item("",label, currentTime));
+
+                        putDatabase("",label,currentTime);
                     }
                 }
             });
@@ -171,6 +182,40 @@ public class userFragment extends Fragment {
             });
         }
     };
+    private int RightRecycle(String label){
+        int recycleType;
+        // 1자리 또는 2자리 숫자 처
+        if (Character.isDigit(label.charAt(1))) {
+            recycleType = Integer.parseInt(label.substring(0, 2));  // 두 자리 숫자
+        } else {
+            recycleType = Integer.parseInt(label.substring(0, 1));  // 한 자리 숫자
+        }
+        return recycleType;
+    }
+
+    private String getRecycleType(String label) {
+        int recycleType;
+        // 1자리 또는 2자리 숫자 처
+        if (Character.isDigit(label.charAt(1))) {
+            recycleType = Integer.parseInt(label.substring(0, 2));  // 두 자리 숫자
+        } else {
+            recycleType = Integer.parseInt(label.substring(0, 1));  // 한 자리 숫자
+        }
+        String[] trash = new String[]{"유리", "종이", "고철", "플라스틱"};
+        switch (recycleType) {
+            case 1: case 2: case 3: case 4:
+                return trash[0];
+            case 5: case 6: case 7: case 8:
+                return trash[1];
+            case 9: case 10: case 11: case 12:
+                return trash[2];
+            case 13: case 14: case 15: case 16:
+                return trash[3];
+            default:
+                throw new IllegalStateException("Unexpected value: " + recycleType);
+        }
+    }
+
 
     private void showDetailActivity(UserAdapter.Item item) {
         Intent intent = new Intent(getContext(), DetailActivity.class);
@@ -231,61 +276,6 @@ public class userFragment extends Fragment {
             return false;
         }
     }
-
-    private void startRecording() {
-        String recordPath = getContext().getExternalFilesDir("/").getAbsolutePath();
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        audioFileName = recordPath + "/" + "RecordExample_" + timeStamp + "_" + "audio.mp4";
-
-        mediaRecorder = new MediaRecorder();
-        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mediaRecorder.setOutputFile(audioFileName);
-        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-
-        try {
-            mediaRecorder.prepare();
-            mediaRecorder.start();
-            isRecording = true;
-            Toast.makeText(getContext(), "녹음 시작", Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void stopRecording() {
-        try {
-            mediaRecorder.stop();
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-        } finally {
-            mediaRecorder.release();
-            mediaRecorder = null;
-            isRecording = false;
-        }
-        Toast.makeText(getContext(), "녹음 중지", Toast.LENGTH_SHORT).show();
-        audioUri = Uri.parse(audioFileName);
-        String recycleType = getRecycleType();
-        String recordedTime = (timeText != null) ? timeText.getText().toString() : "Unknown Time";
-        adapter.addItem(new UserAdapter.Item(audioUri.toString(), recycleType, recordedTime));
-        putDatabase(audioUri.toString(), recycleType, recordedTime);
-        adapter.notifyDataSetChanged();
-    }
-
-    private String getRecycleType() {
-        Random rand = new Random();
-        String[] trash1 = new String[]{"플라스틱", "종이", "유리", "고철"};
-        String[] trash2 = new String[]{"플라스틱", "종이", "유리", "고철"};
-
-        int a, b;
-        do {
-            a = rand.nextInt(4);
-            b = rand.nextInt(4);
-        } while (a == b);
-
-        return trash1[a] + " -> " + trash2[b];
-    }
-
     private void putDatabase(String uri, String type, String time) {
         if (databaseReference == null) {
             Log.e("userFragment", "DatabaseReference is null");
@@ -300,11 +290,6 @@ public class userFragment extends Fragment {
     public void onResume() {
         super.onResume();
         checkAudioPermission();
-
-        if (audioHelper != null) {
-            audioHelper.startAudioClassification();
-            Log.d("AudioTF", "TFStart");// 오디오 분류 시작
-        }
     }
 
     @Override

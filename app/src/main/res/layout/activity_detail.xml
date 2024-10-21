@@ -43,7 +43,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.9" />
 
-    <VideoView
+    <ImageView
         android:id="@+id/videoView2"
         android:layout_width="339dp"
         android:layout_height="470dp"
@@ -88,18 +88,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.948" />
-
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/playButton"
-        android:layout_width="270dp"
-        android:layout_height="50dp"
-        android:background="@drawable/custombtn"
-        android:text="소리 다시 듣기"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.496"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.865" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
