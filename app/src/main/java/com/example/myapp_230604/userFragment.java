@@ -2,12 +2,25 @@ package com.example.myapp_230604;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.ImageFormat;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
+import android.media.Image;
+import android.media.ImageReader;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -34,13 +47,16 @@ import com.google.firebase.database.ValueEventListener;
 
 import org.tensorflow.lite.support.label.Category;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 import java.util.TimeZone;
 
 public class userFragment extends Fragment {
@@ -70,12 +86,15 @@ public class userFragment extends Fragment {
     private List<RecycleData> recycleList = new ArrayList<>();
     private FirebaseAuth mAuth;
 
+    private CameraDevice cameraDevice;
+    private ImageReader imageReader;
+    private String frontCameraId; // 정면 카메라 ID
+    private String imageFilePath; // 저장할 이미지 파일 경로
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_user, container, false);
-
-        checkAudioPermission();
 
         // Initialize views
         recyclerView = view.findViewById(R.id.user_recyclerView);
@@ -129,6 +148,7 @@ public class userFragment extends Fragment {
                         main_btn.setImageDrawable(getResources().getDrawable(R.drawable.user_stop));
                         isRecording = true;
                         guideBtn.setText("잘못된 분리배출 내역");
+                        checkAudioPermission();
                         audioHelper.startAudioClassification();
                     }
                 }
@@ -147,7 +167,8 @@ public class userFragment extends Fragment {
                 2, // numThreads
                 adapter // UserAdapter
         );
-
+        audioHelper.stopAudioClassification();
+        findFrontCameraId();
         return view;
     }
 
@@ -162,16 +183,24 @@ public class userFragment extends Fragment {
                         String label = category.getLabel();
                         float score = category.getScore();
                         String currentTime = timeText.getText().toString();
-//                        if(RightRecycle(label) % 5 == 1){
+                        if(RightRecycle(label)) {
                             label = label.substring(label.indexOf(" ") + 1);
-                            adapter.addItem(new UserAdapter.Item("",label, currentTime));
+                            takePicture();
+                            Handler handler = new Handler();
+                            String finalLabel = label;
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    adapter.addItem(new UserAdapter.Item(imageFilePath, finalLabel, currentTime));
+                                    putDatabase(imageFilePath, finalLabel, currentTime);
+                                }
+                            }, 1000); //딜레이 타임 조절
 
-                        putDatabase("",label,currentTime);
+                        }
                     }
                 }
             });
         }
-
         @Override
         public void onError(String message) {
             requireActivity().runOnUiThread(new Runnable() {
@@ -182,7 +211,7 @@ public class userFragment extends Fragment {
             });
         }
     };
-    private int RightRecycle(String label){
+    private boolean RightRecycle(String label){
         int recycleType;
         // 1자리 또는 2자리 숫자 처
         if (Character.isDigit(label.charAt(1))) {
@@ -190,7 +219,11 @@ public class userFragment extends Fragment {
         } else {
             recycleType = Integer.parseInt(label.substring(0, 1));  // 한 자리 숫자
         }
-        return recycleType;
+        if(recycleType % 5 == 1 || recycleType == 0){
+            return false;
+        }else{
+            return true;
+        }
     }
 
     private String getRecycleType(String label) {
@@ -221,7 +254,7 @@ public class userFragment extends Fragment {
         Intent intent = new Intent(getContext(), DetailActivity.class);
         intent.putExtra("RECYCLE_TIME", item.time);
         intent.putExtra("RECYCLE_TYPE", item.type);
-        intent.putExtra("AUDIO_URI", item.uri);
+        intent.putExtra("IMAGE_URI", item.uri);
         startActivity(intent);
     }
 
@@ -281,9 +314,126 @@ public class userFragment extends Fragment {
             Log.e("userFragment", "DatabaseReference is null");
             return;
         }
-
         RecycleData recycle = new RecycleData(uri, type, time);
         databaseReference.push().setValue(recycle);
+    }
+    private void findFrontCameraId() {
+        CameraManager manager = (CameraManager) requireActivity().getSystemService(Context.CAMERA_SERVICE);
+        try {
+            for (String cameraId : manager.getCameraIdList()) {
+                CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+                int lensFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
+
+                // 정면 카메라(LENS_FACING_FRONT)인 경우 cameraId 저장
+                if (lensFacing == CameraCharacteristics.LENS_FACING_FRONT) {
+                    frontCameraId = cameraId;
+                    openCamera();  // 정면 카메라 열기
+                    return;
+                }
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+    private void openCamera() {
+        CameraManager manager = (CameraManager) requireActivity().getSystemService(Context.CAMERA_SERVICE);
+        try {
+            if (frontCameraId != null) {
+                if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
+                manager.openCamera(frontCameraId, new CameraDevice.StateCallback() {
+                    @Override
+                    public void onOpened(@NonNull CameraDevice camera) {
+                        cameraDevice = camera;
+                        setupImageReader();
+                    }
+
+                    @Override
+                    public void onDisconnected(@NonNull CameraDevice camera) {
+                        camera.close();
+                        cameraDevice = null;
+                    }
+
+                    @Override
+                    public void onError(@NonNull CameraDevice camera, int error) {
+                        camera.close();
+                        cameraDevice = null;
+                    }
+                }, null);
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+    private void setupImageReader() {
+        imageReader = ImageReader.newInstance(640, 480, ImageFormat.JPEG, 1);
+        imageReader.setOnImageAvailableListener(reader -> {
+            Image image = reader.acquireNextImage();
+            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+            byte[] bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+            image.close();
+            saveImageToFile(bytes);  // 파일로 저장
+        }, null);
+    }
+    private void takePicture() {
+        if (cameraDevice == null) return;
+
+        try {
+            CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(imageReader.getSurface());
+            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+
+            // 자동 노출 및 노출 보정 설정
+            captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+            captureBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 0); // 기본 노출 보정 값
+
+            CameraCaptureSession.StateCallback captureCallback = new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession session) {
+                    try {
+                        session.capture(captureBuilder.build(), new CameraCaptureSession.CaptureCallback() {
+                            @Override
+                            public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                                Log.d("Camera", "사진 촬영 완료");
+                                // 촬영 후 이미지를 저장하는 메서드 호출
+                                // 이미지를 파일로 저장하면서 경로를 업데이트
+                                imageReader.acquireLatestImage();
+                            }
+                        }, null);
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                    Log.e("Camera", "카메라 세션 구성 실패");
+                }
+            };
+
+            cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), captureCallback, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveImageToFile(byte[] bytes) {
+        // 현재 시간으로 고유한 파일 이름 생성
+        String fileName = "captured_image_" + System.currentTimeMillis() + ".jpg";
+
+        // 사진을 저장할 디렉토리 설정
+        File directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        File file = new File(directory, fileName);
+
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(bytes);
+            imageFilePath = file.getAbsolutePath();  // 저장된 파일 경로 저장
+            Log.d("Camera", "이미지 저장 완료: " + imageFilePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
