@@ -50,7 +50,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth:23.0.0'
     implementation 'com.google.firebase:firebase-firestore:25.1.0'
     implementation 'com.google.android.gms:play-services-gcm:17.0.0'
-    implementation platform('com.google.firebase:firebase-bom:33.4.0')
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    implementation("com.google.firebase:firebase-appcheck")
 
     // UI Libraries
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
@@ -63,6 +64,7 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-task-audio:0.4.0'
     // Import the GPU delegate plugin Library for GPU inference
     implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0'
+    implementation 'com.google.firebase:firebase-appcheck-playintegrity:18.0.0'
 
     // Testing Libraries
     testImplementation 'junit:junit:4.13.2'
@@ -85,5 +87,9 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:1.2.0-alpha02"
     implementation "androidx.camera:camera-view:1.0.0-alpha28"
     implementation "androidx.camera:camera-extensions:1.0.0-alpha28"
+
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.3'
 }
 

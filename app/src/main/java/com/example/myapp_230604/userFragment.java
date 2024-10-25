@@ -90,6 +90,7 @@ public class userFragment extends Fragment {
     private ImageReader imageReader;
     private String frontCameraId; // 정면 카메라 ID
     private String imageFilePath; // 저장할 이미지 파일 경로
+    private static final int CAMERA_PERMISSION_CODE = 100;
 
     @Nullable
     @Override
@@ -194,7 +195,7 @@ public class userFragment extends Fragment {
                                     adapter.addItem(new UserAdapter.Item(imageFilePath, finalLabel, currentTime));
                                     putDatabase(imageFilePath, finalLabel, currentTime);
                                 }
-                            }, 1000); //딜레이 타임 조절
+                            }, 500); //딜레이 타임 조절
 
                         }
                     }
@@ -380,12 +381,16 @@ public class userFragment extends Fragment {
     private void takePicture() {
         if (cameraDevice == null) return;
 
+        // 카메라 권한 확인 및 요청
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_CODE);
+            return;
+        }
+
         try {
             CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             captureBuilder.addTarget(imageReader.getSurface());
             captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-
-            // 자동 노출 및 노출 보정 설정
             captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
             captureBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 0); // 기본 노출 보정 값
 
@@ -397,9 +402,7 @@ public class userFragment extends Fragment {
                             @Override
                             public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
                                 Log.d("Camera", "사진 촬영 완료");
-                                // 촬영 후 이미지를 저장하는 메서드 호출
-                                // 이미지를 파일로 저장하면서 경로를 업데이트
-                                imageReader.acquireLatestImage();
+                                imageReader.acquireLatestImage(); // 이미지 저장
                             }
                         }, null);
                     } catch (CameraAccessException e) {

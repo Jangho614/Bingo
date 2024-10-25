@@ -37,6 +37,9 @@
             android:name=".signup_user"
             android:exported="false" />
         <activity
+            android:name=".signup_manager"
+            android:exported="false" />
+        <activity
             android:name=".Loading"
             android:exported="false" />
         <activity

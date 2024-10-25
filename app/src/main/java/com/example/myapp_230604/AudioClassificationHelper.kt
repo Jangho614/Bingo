@@ -77,6 +77,11 @@ class AudioClassificationHelper(
     }
 
     fun startAudioClassification() {
+        if (!::recorder.isInitialized) {
+            Log.e("AudioClassification", "Recorder is not initialized")
+            return // recorder가 초기화되지 않은 경우 메서드 종료
+        }
+
         if (recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
             return // 이미 녹음 중이라면 중복 실행 방지
         }
@@ -98,8 +103,12 @@ class AudioClassificationHelper(
     }
 
     fun stopAudioClassification() {
-        recorder.stop()
-        executor.shutdownNow()
+        if (::recorder.isInitialized && recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+            recorder.stop()
+        }
+        if (::executor.isInitialized) {
+            executor.shutdownNow()
+        }
     }
 
     private fun classifyAudio() {
@@ -118,9 +127,9 @@ class AudioClassificationHelper(
     companion object {
         const val DELEGATE_CPU = 0
         const val DELEGATE_NNAPI = 1
-        const val DISPLAY_THRESHOLD = 0.3f
+        const val DISPLAY_THRESHOLD = 0.7f
         const val DEFAULT_NUM_OF_RESULTS = 1
         const val DEFAULT_OVERLAP_VALUE = 0.5f
-        const val YAMNET_MODEL = "recycle.tflite"
+        const val YAMNET_MODEL = "recycle2.tflite"
     }
 }

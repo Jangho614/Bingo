@@ -116,6 +116,7 @@ public class signup_user extends AppCompatActivity {
         userData.put("birthDate", birthDate);
         userData.put("address", address);
 
+
         // Realtime Database에 저장
         mDatabase.child("users").child(userId).setValue(userData)
                 .addOnCompleteListener(task -> {

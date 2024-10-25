@@ -52,8 +52,6 @@ public class ManagerFragment extends Fragment {
         NeedBox = view.findViewById(R.id.NeedCheck);
         CompleteBox = view.findViewById(R.id.CompleteCheck);
         databaseReference = FirebaseDatabase.getInstance().getReference().child("WrongRecycle");
-        //ToDo 파베 수정
-        //        loadRecycle();
 
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
@@ -107,7 +105,7 @@ public class ManagerFragment extends Fragment {
         adapter.addItem(new ManagerAdapter.Item("watermelon", "2024/03/31 16:06:31","처리완료",""));
         adapter.addItem(new ManagerAdapter.Item("melon", "2024/03/31 18:36:58","처리완료",""));
         adapter.addItem(new ManagerAdapter.Item("banana", "2024/06/24 11:13:42","처리필요",""));
-        adapter.addItem(new ManagerAdapter.Item("orange", "2024/10/03 15:44:13","처리필요",""));
+        adapter.addItem(new ManagerAdapter.Item("orange3", "2024/10/03 15:44:13","처리필요",""));
         return view;
     }
     private void showDetailActivitym(ManagerAdapter.Item item) {

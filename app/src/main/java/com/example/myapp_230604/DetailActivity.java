@@ -1,14 +1,14 @@
 package com.example.myapp_230604;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.MediaPlayer;
-import android.net.Uri;
+import android.graphics.Matrix;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -16,11 +16,8 @@ public class DetailActivity extends AppCompatActivity {
     ImageView back_btn;
     TextView time,type;
     ImageView img;
-
-    private MediaPlayer mediaPlayer;
-    private Button playButton;
-    private Uri audioUri;
     @Override
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
@@ -32,7 +29,16 @@ public class DetailActivity extends AppCompatActivity {
 
         type.setText(getIntent().getStringExtra("RECYCLE_TYPE"));
         time.setText(getIntent().getStringExtra("RECYCLE_TIME"));
-        img.setImageBitmap(BitmapFactory.decodeFile(getIntent().getStringExtra("IMAGE_URI")));
+        String getUri = getIntent().getStringExtra("IMAGE_URI");
+
+        // Bitmap을 가져오고 90도 회전
+        Bitmap originalBitmap = BitmapFactory.decodeFile(getUri);
+        Matrix matrix = new Matrix();
+        matrix.postRotate(270); // 90도 회전
+        Bitmap rotatedBitmap = Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.getWidth(), originalBitmap.getHeight(), matrix, true);
+
+        img.setImageBitmap(rotatedBitmap); // 회전된 이미지를 ImageView에 설정
+        Toast.makeText(this, getUri, Toast.LENGTH_SHORT).show();
 
         back_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -41,6 +47,6 @@ public class DetailActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
     }
+
 }

@@ -31,7 +31,7 @@ public class Login_User extends AppCompatActivity {
 
     EditText id;
     EditText pw;
-    String mode="user";
+    String mode = "user";
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
 
@@ -43,12 +43,12 @@ public class Login_User extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         FirebaseUser user = mAuth.getCurrentUser();
-        if(user != null){
+        if (user != null) {
             if (mode == "user") {
-                startActivity(new Intent(this,mainActivity.class));
+                startActivity(new Intent(this, mainActivity.class));
                 finish();
-            }else{
-                startActivity(new Intent(this,mainActivity_m.class));
+            } else {
+                startActivity(new Intent(this, mainActivity_m.class));
                 finish();
             }
         }
@@ -75,9 +75,9 @@ public class Login_User extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent;
-                if(mode == "user") {
+                if (mode == "user") {
                     intent = new Intent(getApplicationContext(), signup_user.class);
-                }else{
+                } else {
                     intent = new Intent(getApplicationContext(), signup_manager.class);
                 }
                 startActivity(intent);
@@ -103,6 +103,7 @@ public class Login_User extends AppCompatActivity {
             }
         });
     }
+
     private void login() {
         mAuth.signInWithEmailAndPassword(id.getText().toString(), pw.getText().toString())
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
