@@ -5,16 +5,20 @@ public class RecycleData_m {
     public String wrongTime;
     public String process;
     public String wrongType;
+    public String uri;
+    public String mid;
 
     // 기본 생성자 (Firebase에서 데이터를 읽어올 때 필요)
     public RecycleData_m() {}
 
     // 모든 필드를 포함한 생성자
-    public RecycleData_m(String id, String wrongTime, String process, String wrongType) {
+    public RecycleData_m(String id, String wrongTime, String process, String wrongType, String uri,String mid) {
         this.id = id;
         this.wrongTime = wrongTime;
         this.process = process;
         this.wrongType = wrongType;
+        this.uri = uri;
+        this.mid = mid;
     }
 
     // Getter 및 Setter 메서드

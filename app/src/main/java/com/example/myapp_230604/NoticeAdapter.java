@@ -35,8 +35,8 @@ public class NoticeAdapter extends RecyclerView.Adapter<NoticeAdapter.ViewHolder
 
         public ViewHolder(View view, final OnItemClickListener listener) {
             super(view);
-            title = view.findViewById(R.id.textView);
-            contents = view.findViewById(R.id.textView2);
+            title = view.findViewById(R.id.titleText);
+            contents = view.findViewById(R.id.contents_preview);
 
             view.setOnClickListener(new View.OnClickListener() {
                 @Override

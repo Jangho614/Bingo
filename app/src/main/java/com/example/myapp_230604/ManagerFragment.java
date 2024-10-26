@@ -16,6 +16,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -38,6 +40,7 @@ public class ManagerFragment extends Fragment {
     String searchText = "";
     int idx;
     private DatabaseReference databaseReference;
+    private FirebaseAuth mAuth;
     private List<RecycleData_m> recycleList = new ArrayList<RecycleData_m>();
 
 
@@ -51,12 +54,16 @@ public class ManagerFragment extends Fragment {
         imageViewSearch = view.findViewById(R.id.imageView2);
         NeedBox = view.findViewById(R.id.NeedCheck);
         CompleteBox = view.findViewById(R.id.CompleteCheck);
-        databaseReference = FirebaseDatabase.getInstance().getReference().child("WrongRecycle");
+
+        mAuth = FirebaseAuth.getInstance();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        String uid = currentUser.getUid();
+        databaseReference = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("manage");
 
 
+        loadRecycle();
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);
-
         adapter = new ManagerAdapter(); // Adapter 인스턴스 생성
         recyclerView.setAdapter(adapter);
 
@@ -99,21 +106,16 @@ public class ManagerFragment extends Fragment {
                 showDetailActivitym(item);
             }
         });
-
-        adapter.addItem(new ManagerAdapter.Item("apple", "2024/03/30 16:43:12","처리완료",""));
-        adapter.addItem(new ManagerAdapter.Item("pineapple", "2024/03/30 17:10:34","처리필요",""));
-        adapter.addItem(new ManagerAdapter.Item("watermelon", "2024/03/31 16:06:31","처리완료",""));
-        adapter.addItem(new ManagerAdapter.Item("melon", "2024/03/31 18:36:58","처리완료",""));
-        adapter.addItem(new ManagerAdapter.Item("banana", "2024/06/24 11:13:42","처리필요",""));
-        adapter.addItem(new ManagerAdapter.Item("orange3", "2024/10/03 15:44:13","처리필요",""));
         return view;
     }
     private void showDetailActivitym(ManagerAdapter.Item item) {
         Intent intent = new Intent(getContext(), DetailActivity_m.class);
         intent.putExtra(DetailActivity_m.EXTRA_ID, item.id);
+        intent.putExtra(DetailActivity_m.EXTRA_MID, item.mid);
         intent.putExtra(DetailActivity_m.EXTRA_TIME, item.time);
         intent.putExtra(DetailActivity_m.EXTRA_PROCESS, item.processing);
         intent.putExtra(DetailActivity_m.EXTRA_TYPE, item.type);
+        intent.putExtra(DetailActivity_m.EXTRA_URI, item.uri);
         startActivity(intent);
     }
     private void loadRecycle() {
@@ -133,7 +135,7 @@ public class ManagerFragment extends Fragment {
                     System.out.println("Recycle");
                     if (recycle != null) {
                         recycleList.add(recycle);
-                        adapter.addItem(new ManagerAdapter.Item(recycle.id,recycle.wrongTime,recycle.process,recycle.wrongType));
+                        adapter.addItem(new ManagerAdapter.Item(recycle.id,recycle.wrongTime,recycle.process,recycle.wrongType,recycle.uri,recycle.mid));
                     }
                 }
                 adapter.notifyDataSetChanged();

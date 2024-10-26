@@ -37,13 +37,13 @@ class AudioClassificationHelper(
     var numThreads: Int = 2,
     val adapter: UserAdapter // UserAdapter 추가
 ) {
-    private lateinit var classifier: AudioClassifier
-    private lateinit var tensorAudio: TensorAudio
-    private lateinit var recorder: AudioRecord
-    private lateinit var executor: ScheduledThreadPoolExecutor
+    private lateinit var classifier: AudioClassifier // 오디오 분류기 객체
+    private lateinit var tensorAudio: TensorAudio // 입력 텐서 오디오 객체
+    private lateinit var recorder: AudioRecord // 오디오 녹음기 객체
+    private lateinit var executor: ScheduledThreadPoolExecutor // 스케줄된 스레드 풀 실행기
 
     private val classifyRunnable = Runnable {
-        classifyAudio()
+        classifyAudio() // 오디오 분류 실행
     }
 
     init {
@@ -51,49 +51,56 @@ class AudioClassificationHelper(
     }
 
     fun initClassifier() {
+        // 기본 옵션 설정
         val baseOptionsBuilder = BaseOptions.builder()
-            .setNumThreads(numThreads)
+            .setNumThreads(numThreads) // 사용할 스레드 수 설정
 
+        // 현재 delegate 설정
         when (currentDelegate) {
             DELEGATE_CPU -> { /* 기본값으로 CPU 사용 */ }
-            DELEGATE_NNAPI -> { baseOptionsBuilder.useNnapi() }
+            DELEGATE_NNAPI -> { baseOptionsBuilder.useNnapi() } // NNAPI 사용
         }
 
+        // 오디오 분류기 옵션 설정
         val options = AudioClassifier.AudioClassifierOptions.builder()
-            .setScoreThreshold(classificationThreshold)
-            .setMaxResults(numOfResults)
-            .setBaseOptions(baseOptionsBuilder.build())
+            .setScoreThreshold(classificationThreshold) // 분류 점수 임계값 설정
+            .setMaxResults(numOfResults) // 최대 결과 수 설정
+            .setBaseOptions(baseOptionsBuilder.build()) // 기본 옵션 설정
             .build()
 
         try {
+            // 오디오 분류기 생성
             classifier = AudioClassifier.createFromFileAndOptions(context, currentModel, options)
-            tensorAudio = classifier.createInputTensorAudio()
-            recorder = classifier.createAudioRecord()
-            startAudioClassification()
+            tensorAudio = classifier.createInputTensorAudio() // 입력 텐서 오디오 생성
+            recorder = classifier.createAudioRecord() // 오디오 녹음기 생성
+            startAudioClassification() // 오디오 분류 시작
         } catch (e: IllegalStateException) {
-            listener.onError("오디오 분류기 초기화에 실패했습니다. 자세한 오류는 로그를 확인하세요.")
-            Log.e("AudioClassification", "TFLite 로드 중 오류 발생: ${e.message}")
+            listener.onError("오디오 분류기 초기화에 실패했습니다. 자세한 오류는 로그를 확인하세요.") // 오류 처리
+            Log.e("AudioClassification", "TFLite 로드 중 오류 발생: ${e.message}") // 로그 출력
         }
     }
 
     fun startAudioClassification() {
         if (!::recorder.isInitialized) {
-            Log.e("AudioClassification", "Recorder is not initialized")
-            return // recorder가 초기화되지 않은 경우 메서드 종료
+            Log.e("AudioClassification", "Recorder is not initialized") // recorder가 초기화되지 않은 경우 오류 로그
+            return // 메서드 종료
         }
 
         if (recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
             return // 이미 녹음 중이라면 중복 실행 방지
         }
 
-        recorder.startRecording()
-        executor = ScheduledThreadPoolExecutor(1)
+        recorder.startRecording() // 오디오 녹음 시작
+        executor = ScheduledThreadPoolExecutor(1) // 스케줄러 생성
 
+        // 입력 버퍼 크기에 따라 지연 시간 계산
         val lengthInMilliSeconds = ((classifier.requiredInputBufferSize * 1.0f) /
                 classifier.requiredTensorAudioFormat.sampleRate) * 1000
 
+        // 중복 오버랩을 고려하여 간격 계산
         val interval = (lengthInMilliSeconds * (1 - overlap)).toLong()
 
+        // 주기적으로 classifyRunnable 실행
         executor.scheduleAtFixedRate(
             classifyRunnable,
             0,
@@ -103,33 +110,35 @@ class AudioClassificationHelper(
     }
 
     fun stopAudioClassification() {
+        // 녹음 중인 경우 녹음 중지
         if (::recorder.isInitialized && recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
             recorder.stop()
         }
+        // 스케줄러 종료
         if (::executor.isInitialized) {
             executor.shutdownNow()
         }
     }
 
     private fun classifyAudio() {
-        Log.d("AudioTF","ClassificationStart")
-        tensorAudio.load(recorder)
-        var inferenceTime = SystemClock.uptimeMillis()
-        val output = classifier.classify(tensorAudio)
-        inferenceTime = SystemClock.uptimeMillis() - inferenceTime
+        Log.d("AudioTF","ClassificationStart") // 분류 시작 로그
+        tensorAudio.load(recorder) // 오디오 데이터 로드
+        var inferenceTime = SystemClock.uptimeMillis() // 추론 시작 시간 기록
+        val output = classifier.classify(tensorAudio) // 분류 실행
+        inferenceTime = SystemClock.uptimeMillis() - inferenceTime // 추론 시간 계산
 
-//        adapter.addItem(UserAdapter.Item("", output[0].categories.toString(), "$inferenceTime ms"))
+        // 결과를 Listener에 전달
         listener.onResult(output[0].categories, inferenceTime)
-        Log.d("AudioTF", output[0].categories.toString())
+        Log.d("AudioTF", output[0].categories.toString()) // 결과 로그 출력
     }
 
     // 모델 설정값 지정
     companion object {
-        const val DELEGATE_CPU = 0
-        const val DELEGATE_NNAPI = 1
-        const val DISPLAY_THRESHOLD = 0.7f
-        const val DEFAULT_NUM_OF_RESULTS = 1
-        const val DEFAULT_OVERLAP_VALUE = 0.5f
-        const val YAMNET_MODEL = "recycle2.tflite"
+        const val DELEGATE_CPU = 0 // CPU delegate
+        const val DELEGATE_NNAPI = 1 // NNAPI delegate
+        const val DISPLAY_THRESHOLD = 0.8f // 점수 임계값
+        const val DEFAULT_NUM_OF_RESULTS = 1 // 기본 결과 수
+        const val DEFAULT_OVERLAP_VALUE = 0.5f // 기본 오버랩 값
+        const val YAMNET_MODEL = "recycle3.tflite" // 사용할 모델 파일명
     }
 }

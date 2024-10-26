@@ -1,11 +1,15 @@
 package com.example.myapp_230604;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
 import android.widget.Filterable;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -31,13 +35,16 @@ public class ManagerAdapter extends RecyclerView.Adapter<ManagerAdapter.ViewHold
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        public TextView id, time, processing;
+        public TextView id, time, processing,type;
+        public ImageView img;
 
         public ViewHolder(View view, final OnItemClickListener listener) {
             super(view);
             id = view.findViewById(R.id.idText);
             time = view.findViewById(R.id.timeText);
             processing = view.findViewById(R.id.prcText);
+            img = view.findViewById(R.id.imageView);
+            type = view.findViewById(R.id.wrong_type);
 
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -53,6 +60,7 @@ public class ManagerAdapter extends RecyclerView.Adapter<ManagerAdapter.ViewHold
         public void setItem(Item item) {
             id.setText(item.id);
             time.setText(item.time);
+            type.setText(item.type);
             if(item.processing.equals("처리완료")) {
                 processing.setTextColor(Color.rgb(60, 60, 255));
             }
@@ -60,6 +68,12 @@ public class ManagerAdapter extends RecyclerView.Adapter<ManagerAdapter.ViewHold
                 processing.setTextColor(Color.rgb(255, 60, 60));
             }
             processing.setText(item.processing);
+            Bitmap originalBitmap = BitmapFactory.decodeFile(item.uri);
+            Matrix matrix = new Matrix();
+            matrix.postRotate(270); // 90도 회전
+            Bitmap rotatedBitmap = Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.getWidth(), originalBitmap.getHeight(), matrix, true);
+
+            img.setImageBitmap(rotatedBitmap); // 회전된 이미지를 ImageView에 설정
         }
 
     }
@@ -143,13 +157,15 @@ public class ManagerAdapter extends RecyclerView.Adapter<ManagerAdapter.ViewHold
     };
 
     public static class Item {
-        String id, time, processing, type;
+        String id, time, processing, type,uri,mid;
 
-        public Item(String id, String time, String processing,String type) {
+        public Item(String id, String time, String processing,String type,String uri, String mid) {
             this.id = id;
             this.time = time;
             this.processing = processing;
             this.type = type;
+            this.uri = uri;
+            this.mid = mid;
         }
 
         public String printItem() {

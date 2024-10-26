@@ -67,6 +67,7 @@ public class userFragment extends Fragment {
 
     RecyclerView recyclerView;
     UserAdapter adapter;
+    ManagerAdapter Madapter;
     ImageView main_btn;
 
     private String recordPermission = Manifest.permission.RECORD_AUDIO;
@@ -83,6 +84,8 @@ public class userFragment extends Fragment {
     private TextView guideBtn;
 
     private DatabaseReference databaseReference;
+    private DatabaseReference MdatabaseReference;
+
     private List<RecycleData> recycleList = new ArrayList<>();
     private FirebaseAuth mAuth;
 
@@ -91,6 +94,11 @@ public class userFragment extends Fragment {
     private String frontCameraId; // 정면 카메라 ID
     private String imageFilePath; // 저장할 이미지 파일 경로
     private static final int CAMERA_PERMISSION_CODE = 100;
+
+    public String recycleId,manageId;
+    private String userEmail;
+
+    private CameraCaptureSession cameraCaptureSession;
 
     @Nullable
     @Override
@@ -102,15 +110,20 @@ public class userFragment extends Fragment {
         guideBtn = view.findViewById(R.id.guide_text);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false));
         adapter = new UserAdapter();
+        Madapter = new ManagerAdapter();
         recyclerView.setAdapter(adapter);
         main_btn = view.findViewById(R.id.mic_icon);
         mAuth = FirebaseAuth.getInstance();  // FirebaseAuth 초기화
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
+        mediaPlayer = MediaPlayer.create(getContext(), R.raw.alert_sound);
+
         // 현재 로그인한 사용자의 UID를 사용하여 데이터베이스 경로 설정
         if (currentUser != null) {
             String uid = currentUser.getUid();
             databaseReference = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("recycle");
+            MdatabaseReference = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("manage");
+
             loadRecycle();
         }
         timeText = view.findViewById(R.id.time_text);
@@ -184,7 +197,10 @@ public class userFragment extends Fragment {
                         String label = category.getLabel();
                         float score = category.getScore();
                         String currentTime = timeText.getText().toString();
-                        if(RightRecycle(label)) {
+                        String process = "처리필요";
+                        FirebaseUser currentUser = mAuth.getCurrentUser();
+                        userEmail = currentUser.getEmail();
+                        if (RightRecycle(label)) {
                             label = label.substring(label.indexOf(" ") + 1);
                             takePicture();
                             Handler handler = new Handler();
@@ -192,16 +208,20 @@ public class userFragment extends Fragment {
                             handler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
-                                    adapter.addItem(new UserAdapter.Item(imageFilePath, finalLabel, currentTime));
-                                    putDatabase(imageFilePath, finalLabel, currentTime);
+                                    if (mediaPlayer != null) {
+                                        mediaPlayer.start(); // 소리 재생
+                                    }
+                                    putDatabase(imageFilePath, finalLabel, currentTime, process);
+                                    adapter.addItem(new UserAdapter.Item(imageFilePath, finalLabel, currentTime, process, recycleId));
+                                    putMDatabase(userEmail, currentTime, process, finalLabel,imageFilePath,manageId);
                                 }
-                            }, 500); //딜레이 타임 조절
-
+                            }, 500); // 딜레이 타임 조절
                         }
                     }
                 }
             });
         }
+
         @Override
         public void onError(String message) {
             requireActivity().runOnUiThread(new Runnable() {
@@ -212,6 +232,7 @@ public class userFragment extends Fragment {
             });
         }
     };
+
     private boolean RightRecycle(String label){
         int recycleType;
         // 1자리 또는 2자리 숫자 처
@@ -253,6 +274,7 @@ public class userFragment extends Fragment {
 
     private void showDetailActivity(UserAdapter.Item item) {
         Intent intent = new Intent(getContext(), DetailActivity.class);
+        intent.putExtra("ID",item.id);
         intent.putExtra("RECYCLE_TIME", item.time);
         intent.putExtra("RECYCLE_TYPE", item.type);
         intent.putExtra("IMAGE_URI", item.uri);
@@ -276,7 +298,7 @@ public class userFragment extends Fragment {
                     RecycleData recycle = postSnapshot.getValue(RecycleData.class);
                     if (recycle != null) {
                         recycleList.add(recycle);
-                        adapter.addItem(new UserAdapter.Item(recycle.getUri(), recycle.getType(), recycle.getTime()));
+                        adapter.addItem(new UserAdapter.Item(recycle.getUri(), recycle.getType(), recycle.getTime(), recycle.getProc(),recycle.getId()));
                     }
                 }
                 adapter.notifyDataSetChanged();
@@ -310,13 +332,24 @@ public class userFragment extends Fragment {
             return false;
         }
     }
-    private void putDatabase(String uri, String type, String time) {
+    private void putDatabase(String uri, String type, String time, String proc) {
+        recycleId = databaseReference.push().getKey();
+        manageId = MdatabaseReference.push().getKey();
         if (databaseReference == null) {
             Log.e("userFragment", "DatabaseReference is null");
             return;
         }
-        RecycleData recycle = new RecycleData(uri, type, time);
-        databaseReference.push().setValue(recycle);
+        RecycleData recycle = new RecycleData(uri, type, time, proc, recycleId);
+        databaseReference.child(recycleId).setValue(recycle);
+    }
+
+    private void putMDatabase(String user, String time, String proc, String type, String uri, String mid) {
+        if (MdatabaseReference == null) {
+            Log.e("userFragment", "DatabaseReference is null");
+            return;
+        }
+        RecycleData_m recycle = new RecycleData_m(user,time,proc,type,uri,mid);
+        MdatabaseReference.child(manageId).setValue(recycle);
     }
     private void findFrontCameraId() {
         CameraManager manager = (CameraManager) requireActivity().getSystemService(Context.CAMERA_SERVICE);
@@ -348,6 +381,7 @@ public class userFragment extends Fragment {
                     public void onOpened(@NonNull CameraDevice camera) {
                         cameraDevice = camera;
                         setupImageReader();
+                        createCameraCaptureSession();
                     }
 
                     @Override
@@ -367,6 +401,24 @@ public class userFragment extends Fragment {
             e.printStackTrace();
         }
     }
+    private void createCameraCaptureSession() {
+        try {
+            cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession session) {
+                    cameraCaptureSession = session; // Save session reference
+                    Log.d("Camera", "Camera session configured");
+                }
+
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                    Log.e("Camera", "카메라 세션 구성 실패");
+                }
+            }, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
     private void setupImageReader() {
         imageReader = ImageReader.newInstance(640, 480, ImageFormat.JPEG, 1);
         imageReader.setOnImageAvailableListener(reader -> {
@@ -379,9 +431,9 @@ public class userFragment extends Fragment {
         }, null);
     }
     private void takePicture() {
-        if (cameraDevice == null) return;
+        if (cameraDevice == null || cameraCaptureSession == null) return;
 
-        // 카메라 권한 확인 및 요청
+        // Check if camera permissions are granted
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_CODE);
             return;
@@ -392,31 +444,15 @@ public class userFragment extends Fragment {
             captureBuilder.addTarget(imageReader.getSurface());
             captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
             captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
-            captureBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 0); // 기본 노출 보정 값
 
-            CameraCaptureSession.StateCallback captureCallback = new CameraCaptureSession.StateCallback() {
+            cameraCaptureSession.capture(captureBuilder.build(), new CameraCaptureSession.CaptureCallback() {
                 @Override
-                public void onConfigured(@NonNull CameraCaptureSession session) {
-                    try {
-                        session.capture(captureBuilder.build(), new CameraCaptureSession.CaptureCallback() {
-                            @Override
-                            public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                                Log.d("Camera", "사진 촬영 완료");
-                                imageReader.acquireLatestImage(); // 이미지 저장
-                            }
-                        }, null);
-                    } catch (CameraAccessException e) {
-                        e.printStackTrace();
-                    }
+                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                    Log.d("Camera", "사진 촬영 완료");
+                    imageReader.acquireLatestImage();
                 }
+            }, null);
 
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                    Log.e("Camera", "카메라 세션 구성 실패");
-                }
-            };
-
-            cameraDevice.createCaptureSession(Arrays.asList(imageReader.getSurface()), captureCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }

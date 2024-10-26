@@ -73,12 +73,14 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
         }
     }
     public static class Item {
-        String uri,type,time;
+        String uri,type,time,proc,id;
 
-        public Item(String uri, String type, String time){
+        public Item(String uri, String type, String time,String proc, String id){
             this.uri = uri;
             this.type = type;
             this.time = time;
+            this.proc = proc;
+            this.id = id;
         }
     }
 }
