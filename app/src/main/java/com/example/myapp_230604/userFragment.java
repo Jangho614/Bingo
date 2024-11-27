@@ -37,6 +37,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -44,6 +46,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import org.tensorflow.lite.support.label.Category;
 
@@ -152,20 +157,22 @@ public class userFragment extends Fragment {
             @SuppressLint("UseCompatLoadingForDrawables")
             @Override
             public void onClick(View view) {
-                if (isRecording) {
-                    main_btn.setImageDrawable(getResources().getDrawable(R.drawable.user_mic));
-                    isRecording = false;
-                    guideBtn.setText("마이크를 눌러 분리배출을 시작");
-                    audioHelper.stopAudioClassification();
-                } else {
-                    if (checkAudioPermission()) {
-                        main_btn.setImageDrawable(getResources().getDrawable(R.drawable.user_stop));
-                        isRecording = true;
-                        guideBtn.setText("잘못된 분리배출 내역");
-                        checkAudioPermission();
-                        audioHelper.startAudioClassification();
-                    }
-                }
+                takePicture();
+                Toast.makeText(getContext(), "찰칵", Toast.LENGTH_SHORT).show();
+//                if (isRecording) {
+//                    main_btn.setImageDrawable(getResources().getDrawable(R.drawable.user_mic));
+//                    isRecording = false;
+//                    guideBtn.setText("마이크를 눌러 분리배출을 시작");
+//                    audioHelper.stopAudioClassification();
+//                } else {
+//                    if (checkAudioPermission()) {
+//                        main_btn.setImageDrawable(getResources().getDrawable(R.drawable.user_stop));
+//                        isRecording = true;
+//                        guideBtn.setText("잘못된 분리배출 내역");
+//                        checkAudioPermission();
+//                        audioHelper.startAudioClassification();
+//                    }
+//                }
             }
         });
 
@@ -461,18 +468,41 @@ public class userFragment extends Fragment {
     private void saveImageToFile(byte[] bytes) {
         // 현재 시간으로 고유한 파일 이름 생성
         String fileName = "captured_image_" + System.currentTimeMillis() + ".jpg";
-
         // 사진을 저장할 디렉토리 설정
         File directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         File file = new File(directory, fileName);
-
         try (FileOutputStream fos = new FileOutputStream(file)) {
             fos.write(bytes);
             imageFilePath = file.getAbsolutePath();  // 저장된 파일 경로 저장
             Log.d("Camera", "이미지 저장 완료: " + imageFilePath);
+            ImageToDB(Uri.parse(imageFilePath));
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    
+    private void ImageToDB(Uri img) {
+        if (img == null) return;
+
+        FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
+
+        // 파일 이름 추출
+        String fileName = System.currentTimeMillis() + ".jpg"; // 예시: 타임스탬프 기반 이름 생성
+        StorageReference imgRef = firebaseStorage.getReference("photo/" + fileName);
+
+        imgRef.putFile(img)
+                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        Toast.makeText(getContext(), "Image upload success", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     @Override
